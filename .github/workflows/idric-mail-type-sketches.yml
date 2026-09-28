@@ -25,82 +25,117 @@ jobs:
       - name: Build pinned Idric compiler
         run: make -C .tools/Idric bootstrap SCHEME=scheme
       - name: Typecheck MailSSHBoundary independently
+        id: ssh_boundary
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check MailSSHBoundary.idric
       - name: Typecheck ISSH
+        id: issh
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check ISSH.idric
       - name: Typecheck Transport
+        id: transport
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Transport.idric
       - name: Typecheck Kex
+        id: kex
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Kex.idric
       - name: Typecheck KnownHosts
+        id: known_hosts
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check KnownHosts.idric
       - name: Typecheck Auth
+        id: auth
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Auth.idric
       - name: Typecheck Session
+        id: session
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Session.idric
       - name: Typecheck Channel
+        id: channel
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Channel.idric
       - name: Typecheck SFTP
+        id: sftp
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check SFTP.idric
       - name: Typecheck SCP
+        id: scp
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check SCP.idric
       - name: Typecheck Agent
+        id: agent
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Agent.idric
       - name: Typecheck Error
+        id: error
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Error.idric
       - name: Typecheck Protocol
+        id: protocol
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Protocol.idric
       - name: Typecheck Wire
+        id: wire
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Wire.idric
       - name: Typecheck Types
+        id: types
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check Types.idric
       - name: Typecheck WireTests
+        id: wire_tests
         env:
           IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
         continue-on-error: true
         run: .tools/Idric/build/exec/idris2 --check WireTests.idric
+
+      - name: Fail the job if any source did not typecheck
+        if: always() && (steps.ssh_boundary.outcome != 'success' ||
+          steps.issh.outcome != 'success' ||
+          steps.transport.outcome != 'success' ||
+          steps.kex.outcome != 'success' ||
+          steps.known_hosts.outcome != 'success' ||
+          steps.auth.outcome != 'success' ||
+          steps.session.outcome != 'success' ||
+          steps.channel.outcome != 'success' ||
+          steps.sftp.outcome != 'success' ||
+          steps.scp.outcome != 'success' ||
+          steps.agent.outcome != 'success' ||
+          steps.error.outcome != 'success' ||
+          steps.protocol.outcome != 'success' ||
+          steps.wire.outcome != 'success' ||
+          steps.types.outcome != 'success' ||
+          steps.wire_tests.outcome != 'success')
+        run: exit 1
