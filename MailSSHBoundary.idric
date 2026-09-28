@@ -27,9 +27,9 @@ data TransportFailure
   | UnexpectedTransportEnd
 
 public export
-data PacketInput (state : TransportState)
-  = PacketReceived (List Bits8) (Transport state)
-  | PacketInputEnded (Transport TransportClosed)
+data PacketInput : TransportState -> Type where
+  PacketReceived : List Bits8 -> Transport state -> PacketInput state
+  PacketInputEnded : Transport TransportClosed -> PacketInput TransportClosed
 
 public export
 record AlgorithmOffer where
@@ -149,10 +149,10 @@ record RemoteFile (state : RemoteFileState) where
   remote_path : RemoteFilePath
 
 public export
-data RemoteRead (state : RemoteFileState)
-  = RemoteBytes (List Bits8) (RemoteFile state)
-  | RemoteEOF (RemoteFile RemoteFileClosed)
-  | RemoteReadFailure String
+data RemoteRead : RemoteFileState -> Type where
+  RemoteBytes : List Bits8 -> RemoteFile state -> RemoteRead state
+  RemoteEOF : RemoteFile RemoteFileClosed -> RemoteRead RemoteFileOpen
+  RemoteReadFailure : String -> RemoteRead RemoteFileOpen
 
 public export
 data AgentRequest = ListAgentIdentities | SignWithAgent (List Bits8) Bits32
