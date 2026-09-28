@@ -119,7 +119,7 @@ public export
 data ChannelEvent
   = StandardOutput (List Bits8)
   | StandardError (List Bits8)
-  | RemoteFileEOF
+  | ChannelRemoteEOF
   | RemoteExitStatus Bits32
   | ChannelFailure String
   | ChannelClosedEvent
