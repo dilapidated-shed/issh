@@ -119,7 +119,7 @@ public export
 data ChannelEvent
   = StandardOutput (List Bits8)
   | StandardError (List Bits8)
-  | RemoteEOF
+  | RemoteFileEOF
   | RemoteExitStatus Bits32
   | ChannelFailure String
   | ChannelClosedEvent
@@ -151,7 +151,7 @@ record RemoteFile (state : RemoteFileState) where
 public export
 data RemoteRead : RemoteFileState -> Type where
   RemoteBytes : List Bits8 -> RemoteFile state -> RemoteRead state
-  RemoteEOF : RemoteFile RemoteFileClosed -> RemoteRead RemoteFileOpen
+  RemoteFileEOF : RemoteFile RemoteFileClosed -> RemoteRead RemoteFileOpen
   RemoteReadFailure : String -> RemoteRead RemoteFileOpen
 
 public export
