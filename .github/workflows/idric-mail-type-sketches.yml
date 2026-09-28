@@ -1,0 +1,86 @@
+name: Idric SSH mail boundary typecheck
+
+on:
+  push:
+    branches:
+      - idric-mail-type-sketches
+  pull_request:
+
+jobs:
+  typecheck-ssh-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout issh
+        uses: actions/checkout@v4
+      - name: Checkout pinned Idric compiler
+        uses: actions/checkout@v4
+        with:
+          repository: isomorphisms/Idric
+          ref: 61970be77769f607cca8650bf424c0f0b22ddee7
+          path: .tools/Idric
+      - name: Install Chez Scheme
+        run: sudo apt-get update
+      - name: Install Chez Scheme package
+        run: sudo apt-get install -y chezscheme
+      - name: Build pinned Idric compiler
+        run: make -C .tools/Idric bootstrap SCHEME=scheme
+      - name: Typecheck MailSSHBoundary independently
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check MailSSHBoundary.idric
+      - name: Typecheck ISSH
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check ISSH.idric
+      - name: Typecheck Transport
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Transport.idric
+      - name: Typecheck Kex
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Kex.idric
+      - name: Typecheck KnownHosts
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check KnownHosts.idric
+      - name: Typecheck Auth
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Auth.idric
+      - name: Typecheck Session
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Session.idric
+      - name: Typecheck Channel
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Channel.idric
+      - name: Typecheck SFTP
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check SFTP.idric
+      - name: Typecheck SCP
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check SCP.idric
+      - name: Typecheck Agent
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Agent.idric
+      - name: Typecheck Error
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Error.idric
+      - name: Typecheck Protocol
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Protocol.idric
+      - name: Typecheck Wire
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Wire.idric
+      - name: Typecheck Types
+        env:
+          IDRIS2_PREFIX: ${{ github.workspace }}/.tools/Idric/bootstrap-build
+        run: .tools/Idric/build/exec/idris2 --check Types.idric

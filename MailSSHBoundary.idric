@@ -1,0 +1,206 @@
+module MailSSHBoundary
+
+import Data.Bits
+
+public export
+record Destination where
+  constructor MkDestination
+  intended_host : String
+  intended_port : Bits16
+  account_name : String
+
+public export
+data TransportState = TransportEstablished | VersionNegotiated | KeysInstalled | TransportFailed | TransportClosed
+
+public export
+record Transport (state : TransportState) where
+  constructor MkTransport
+  destination : Destination
+  peer_version : Maybe String
+
+public export
+data TransportFailure
+  = ConnectFailure String
+  | VersionFailure String
+  | PacketInputFailure String
+  | PacketOutputFailure String
+  | UnexpectedTransportEnd
+
+public export
+data PacketInput (state : TransportState)
+  = PacketReceived (List Bits8) (Transport state)
+  | PacketInputEnded (Transport TransportClosed)
+
+public export
+record AlgorithmOffer where
+  constructor MkAlgorithmOffer
+  key_exchange : List String
+  host_key : List String
+  ciphers_inbound : List String
+  ciphers_outbound : List String
+  macs_inbound : List String
+  macs_outbound : List String
+  compression_inbound : List String
+  compression_outbound : List String
+
+public export
+record NegotiatedAlgorithms where
+  constructor MkNegotiatedAlgorithms
+  chosen_key_exchange : String
+  chosen_host_key : String
+  chosen_cipher_inbound : String
+  chosen_cipher_outbound : String
+  chosen_mac_inbound : String
+  chosen_mac_outbound : String
+
+public export
+data KeyExchangeState = BeforeKeyExchange | OfferExchanged | KeyExchangeComplete
+
+public export
+record KeyExchange (state : KeyExchangeState) where
+  constructor MkKeyExchange
+  local_offer : AlgorithmOffer
+  peer_offer : Maybe AlgorithmOffer
+  negotiated : Maybe NegotiatedAlgorithms
+
+public export
+record PresentedHostKey where
+  constructor MkPresentedHostKey
+  key_algorithm : String
+  key_bytes : List Bits8
+
+public export
+data TrustedHostObservation
+  = PreviouslyTrusted PresentedHostKey
+  | NoTrustedEntry
+  | ConflictingTrustedKey PresentedHostKey
+  | KnownHostsReadFailure String
+
+public export
+data HostIdentityDecision
+  = AcceptPreviouslyTrusted PresentedHostKey
+  | ExplicitlyAcceptNew PresentedHostKey
+  | RejectNew PresentedHostKey
+  | RejectConflict PresentedHostKey PresentedHostKey
+  | CannotDetermineTrust String
+
+public export
+data AuthenticationMethod
+  = NoAuthentication
+  | PasswordAuthentication
+  | PublicKeyAuthentication
+  | KeyboardInteractiveAuthentication
+  | HostBasedAuthentication
+
+public export
+data AuthenticationOutcome
+  = Authenticated
+  | AuthenticationDenied (List AuthenticationMethod)
+  | PasswordChangeRequested String String
+  | AuthenticationBannerReceived String String
+
+public export
+record AuthenticatedSession where
+  constructor MkAuthenticatedSession
+  destination : Destination
+  peer_key : PresentedHostKey
+  session_identifier : List Bits8
+
+public export
+data ChannelState = ChannelOpening | ChannelOpen | ChannelEOFObserved | ChannelClosing | ChannelClosed
+
+public export
+record Channel (state : ChannelState) where
+  constructor MkChannel
+  local_channel_number : Bits32
+  peer_channel_number : Maybe Bits32
+
+public export
+data ChannelEvent
+  = StandardOutput (List Bits8)
+  | StandardError (List Bits8)
+  | RemoteEOF
+  | RemoteExitStatus Bits32
+  | ChannelFailure String
+  | ChannelClosedEvent
+
+public export
+record RemoteCommand where
+  constructor MkRemoteCommand
+  command_text : String
+
+public export
+record RemoteFilePath where
+  constructor MkRemoteFilePath
+  path_text : String
+
+public export
+record RemoteFileInfo where
+  constructor MkRemoteFileInfo
+  file_size : Maybe Bits64
+  modification_time : Maybe Bits32
+
+public export
+data RemoteFileState = RemoteFileOpen | RemoteFileClosed
+
+public export
+record RemoteFile (state : RemoteFileState) where
+  constructor MkRemoteFile
+  remote_path : RemoteFilePath
+
+public export
+data RemoteRead (state : RemoteFileState)
+  = RemoteBytes (List Bits8) (RemoteFile state)
+  | RemoteEOF (RemoteFile RemoteFileClosed)
+  | RemoteReadFailure String
+
+public export
+data AgentRequest = ListAgentIdentities | SignWithAgent (List Bits8) Bits32
+
+public export
+data AgentResponse
+  = AgentIdentities (List (List Bits8))
+  | AgentSignature (List Bits8)
+  | AgentFailure String
+
+public export
+data SSHFailureClass
+  = TransportFailureClass
+  | NegotiationFailureClass
+  | HostIdentityFailureClass
+  | AuthenticationFailureClass
+  | ChannelFailureClass
+  | RemoteFileFailureClass
+  | AgentFailureClass
+  | ProtocolFailureClass
+
+public export
+data SCPDirection = SCPReceive | SCPSend
+
+public export
+record SSHBoundaryOperations where
+  constructor MkSSHBoundaryOperations
+  establish : Destination -> IO (Either TransportFailure (Transport TransportEstablished))
+  negotiate_version : Transport TransportEstablished -> String -> IO (Either TransportFailure (Transport VersionNegotiated))
+  send_packet : Transport KeysInstalled -> List Bits8 -> IO (Either TransportFailure (Transport KeysInstalled))
+  receive_packet : Transport KeysInstalled -> IO (Either TransportFailure (PacketInput KeysInstalled))
+  begin_key_exchange : Transport VersionNegotiated -> AlgorithmOffer -> KeyExchange BeforeKeyExchange
+  exchange_key_offer : KeyExchange BeforeKeyExchange -> IO (Either String (KeyExchange OfferExchanged))
+  finish_key_exchange : KeyExchange OfferExchanged -> Either String (KeyExchange KeyExchangeComplete, Transport KeysInstalled)
+  examine_known_host : Destination -> PresentedHostKey -> IO TrustedHostObservation
+  decide_host_key : TrustedHostObservation -> HostIdentityDecision
+  authenticate : Transport KeysInstalled -> AuthenticationMethod -> IO AuthenticationOutcome
+  open_authenticated_session : Transport KeysInstalled -> PresentedHostKey -> IO (Either String AuthenticatedSession)
+  open_command_channel : AuthenticatedSession -> RemoteCommand -> IO (Either String (Channel ChannelOpen))
+  next_channel_event : Channel ChannelOpen -> IO (Either String ChannelEvent)
+  close_channel : Channel ChannelOpen -> IO (Either String (Channel ChannelClosed))
+  inspect_remote_file : AuthenticatedSession -> RemoteFilePath -> IO (Either String RemoteFileInfo)
+  open_remote_file : AuthenticatedSession -> RemoteFilePath -> IO (Either String (RemoteFile RemoteFileOpen))
+  read_remote_file : RemoteFile RemoteFileOpen -> IO (RemoteRead RemoteFileOpen)
+  close_remote_file : RemoteFile RemoteFileOpen -> IO (Either String (RemoteFile RemoteFileClosed))
+  close_transport : Transport KeysInstalled -> IO (Either TransportFailure (Transport TransportClosed))
+
+public export
+record AgentBoundaryOperations where
+  constructor MkAgentBoundaryOperations
+  request_agent : AgentRequest -> IO AgentResponse
